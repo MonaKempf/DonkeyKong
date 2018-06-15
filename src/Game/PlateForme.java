@@ -34,9 +34,9 @@ public class PlateForme {
 		return nbPlateForme;
 	}
 	
-//	public Echelle[] EchellesDePlateForme(){
-//		return echelles;		
-//	}
+	public ArrayList<Echelle> EchellesDePlateForme(){
+		return echelles;		
+	}
 //	
 //	public boolean EchelleAppartinAPlateForme(Echelle e){
 //		for (int i = 0; i < echelles.length; i++){
