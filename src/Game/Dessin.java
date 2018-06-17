@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -22,9 +24,8 @@ public class Dessin extends JPanel {
 	private Mario mario;
 	// private Animation animation;
 	private Kong donkeyKong;
-	private Tonneau tonneau;
 	private BoucleDuJeu boucleDuJeu;
-	private Timer t;
+	private List<Tonneau> tonneaux = new ArrayList<Tonneau>();
 
 	final static int X_PLATEFORME = 100;
 	final static int Y_PLATEFORME = 160;
@@ -35,6 +36,9 @@ public class Dessin extends JPanel {
 	static public BufferedImage imageMario;
 	static public BufferedImage imagePrincesse;
 	static public boolean FIN_DU_JEU = false;
+	
+	private ExecutorService pool = Executors.newCachedThreadPool();
+	Timer t = new Timer();
 
 	public Dessin(JFrame jf) {
 
@@ -42,14 +46,29 @@ public class Dessin extends JPanel {
 		this.plateFormes = creePlateFormes();
 		this.mario = new Mario(this, new Position(0, 0),
 				plateFormes.get(NB_PLATEFORME - 1));
-		this.tonneau = new Tonneau(this, plateFormes.get(0)
-				.positionPlateForme(), (ArrayList<PlateForme>) plateFormes,
-				true);
-		this.t = new Timer();
+		
 		this.addKeyListener(this.mario);
-		this.boucleDuJeu = new BoucleDuJeu(this, mario, tonneau, plateFormes);
+		
+		t.scheduleAtFixedRate(new CreeTonneaux(plateFormes), 0, 3000);
+		
+		this.boucleDuJeu = new BoucleDuJeu(this, mario, plateFormes);
 		t.scheduleAtFixedRate(boucleDuJeu, 0, 1000 / FPS);
-
+	}
+	
+	public class CreeTonneaux extends TimerTask{
+		
+		public List<PlateForme>  plateFormes;		
+		
+		public CreeTonneaux(List<PlateForme> plateFormes) {
+			this.plateFormes = plateFormes;
+		}
+		
+		@Override
+		public void run() {
+			Tonneau tonneau = new Tonneau(plateFormes.get(0).positionPlateForme(), plateFormes);
+			tonneaux.add(tonneau);
+			pool.execute(tonneau);
+		}		
 	}
 
 	public List<PlateForme> creePlateFormes() {
@@ -140,19 +159,23 @@ public class Dessin extends JPanel {
 
 			// Tonneau
 			g2D.setColor(new Color(0, 152, 255));
-			g2D.fillOval(tonneau.getP().getX(), tonneau.getP().getY(), 20, 20);
-
-			System.out.println("Tonneau x :" + tonneau.getP().getX());
-			System.out.println("Tonneau y :" + tonneau.getP().getY());
-			System.out.println("Mario x : " + mario.getP().getX());
-			System.out.println("Mario y : " + mario.getP().getY());
-			System.out.println(mario.getP().getX() + Dessin.X_PLATEFORME);
-			System.out.println(mario.getP().getY() + Dessin.ESPACE_PLATEFORME
-					* (Dessin.NB_PLATEFORME - 1) + Dessin.Y_PLATEFORME);
-
-			if (tonneau.marioMort(mario.getP())) {
-				FIN_DU_JEU = true;
+			System.out.println("Dessin " + tonneaux.size());
+			for (Tonneau tonneau : tonneaux) {
+				g2D.fillOval(tonneau.getP().getX(), tonneau.getP().getY(), 20, 20);
+				if (tonneau.marioMort(mario.getP())) {
+					FIN_DU_JEU = true;
+				}
 			}
+
+//			System.out.println("Tonneau x :" + tonneau.getP().getX());
+//			System.out.println("Tonneau y :" + tonneau.getP().getY());
+//			System.out.println("Mario x : " + mario.getP().getX());
+//			System.out.println("Mario y : " + mario.getP().getY());
+//			System.out.println(mario.getP().getX() + Dessin.X_PLATEFORME);
+//			System.out.println(mario.getP().getY() + Dessin.ESPACE_PLATEFORME
+//					* (Dessin.NB_PLATEFORME - 1) + Dessin.Y_PLATEFORME);
+
+
 			// Princesse
 			g2D.setColor(new Color(200, 170, 170));
 			g2D.fillRect(400, Dessin.Y_PLATEFORME - Dessin.ESPACE_PLATEFORME,
@@ -161,7 +184,6 @@ public class Dessin extends JPanel {
 			g2D.fillRect(404, Dessin.Y_PLATEFORME - Dessin.ESPACE_PLATEFORME
 					+ 4, 292, 12);
 			g.drawImage(imagePrincesse, 450, 10, this);
-			System.out.println(Jeu.Score);
 		} else { // FIN DE JEU
 			g2D.setColor(new Color(255, 255, 200));
 			g2D.fillRect(100, 100, 400, 400);
